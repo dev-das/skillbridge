@@ -1,0 +1,13 @@
+node_modules
+.env
+dist
+
+coverage
+
+.next
+
+*.log
+
+.vscode
+
+.idea
