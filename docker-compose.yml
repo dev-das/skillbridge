@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
 
   backend:
@@ -14,6 +12,11 @@ services:
     environment:
       NODE_ENV: development
     restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
 
   frontend:
     build:
@@ -27,6 +30,9 @@ services:
     environment:
       NODE_ENV: development
     restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_started
 
   postgres:
     image: postgres:17-alpine
@@ -40,6 +46,11 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skillbridge -d skillbridge"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7-alpine
@@ -47,6 +58,11 @@ services:
     restart: unless-stopped
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
 
   nginx:
     image: nginx:alpine
@@ -56,8 +72,11 @@ services:
     volumes:
       - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
     depends_on:
-      - frontend
-      - backend
+      frontend:
+        condition: service_started
+      backend:
+        condition: service_started
+    restart: unless-stopped
 
 volumes:
   postgres_data:
